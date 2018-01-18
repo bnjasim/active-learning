@@ -42,7 +42,7 @@ init_pick(pool_data, pool_labels, num):
     indices = np.random.choice(range(len(pool_data)), num, replace=False)
     datapoints = pool_data[indices]
     labels = pool_labels[indices]
-    pool_data = np.delete(pool_data, indices)
-    pool_labels = np.delete(pool_labels, indices)
-    print("Picked " + str(num) + " datapoints\nSize of updated unsupervised pool = " + str(len(pool_labels)) + "\n")
+    pool_data = np.delete(pool_data, indices, axis=0)
+    pool_labels = np.delete(pool_labels, indices, axis=0)
+    print("Picked " + str(num) + " datapoints\nSize of updated unsupervised pool = " + str(len(pool_data)) + "\n")
     return datapoints, labels, pool_data, pool_labels
