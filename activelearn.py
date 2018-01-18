@@ -26,13 +26,13 @@ def active_pick(acq_fn, num_samples, pool_data, pool_labels, pool_subset_count =
     
     pool_data = np.delete(pool_data, (pool_subset_random_index[pos]), axis=0)
     pool_labels = np.delete(pool_labels, (pool_subset_random_index[pos]), axis=0)
-    print("Picked " + str(num_samples) + " datapoints\nSize of updated unsupervised pool = " + str(len(pool_labels)) + "\n")
+    print("Picked " + str(num_samples) + " datapoints\nSize of updated unsupervised pool = " + str(len(pool_labels)))
 
     return datapoints, labels, pool_data, pool_labels
 
 
 
-init_pick(pool_data, pool_labels, num):
+def init_pick(pool_data, pool_labels, num):
     '''Pick num number of datapoints from the unsupervised data pool
     Remove them from the pool and return the data.
     Returns chosen datapoints and the updated pool_data'''
