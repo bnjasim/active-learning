@@ -13,7 +13,7 @@ def active_pick(acq_fn, num_samples, pool_data, pool_labels, pool_subset_count =
         pool_subset_count = len(pool_data)
 
     #values = [acq_fn(x) for x in pool_data]
-    pool_subset_random_index = np.random.choice(range(0, len(pool_data.shape)), pool_subset_count)
+    pool_subset_random_index = np.random.choice(range(len(pool_data)), pool_subset_count, replace=False)
     X_pool_subset = pool_data[pool_subset_random_index]
     y_pool_subset = pool_labels[pool_subset_random_index]
 
@@ -26,7 +26,7 @@ def active_pick(acq_fn, num_samples, pool_data, pool_labels, pool_subset_count =
     
     pool_data = np.delete(pool_data, (pool_subset_random_index[pos]), axis=0)
     pool_labels = np.delete(pool_labels, (pool_subset_random_index[pos]), axis=0)
-    print("Picked " + str(num) + " datapoints\nSize of updated unsupervised pool = " + str(len(pool_labels)) + "\n")
+    print("Picked " + str(num_samples) + " datapoints\nSize of updated unsupervised pool = " + str(len(pool_labels)) + "\n")
 
     return datapoints, labels, pool_data, pool_labels
 
