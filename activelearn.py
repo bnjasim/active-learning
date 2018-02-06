@@ -148,7 +148,7 @@ class ActiveLearner(object):
             x_axis = self._x_axis
             y_axis = self._accuracy
         
-        %matplotlib inline
+        #%matplotlib inline
         from matplotlib import pyplot as plt
         
         x_start = self.init_num_samples
