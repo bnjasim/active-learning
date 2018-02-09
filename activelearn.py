@@ -20,6 +20,7 @@ class ActiveLearner(object):
     
     def __init__(self, pool_data, pool_labels, test_data, test_labels, 
                  clear_model_fn, train_fn, eval_fn, 
+                 save_model, recover_model,
                  init_num_samples=100):
         '''init_num_samples denote how many datapoints to be samples initially, 
         num_smaples denote how many datapoints to be samples at each iteration'''
@@ -54,6 +55,11 @@ class ActiveLearner(object):
         self._accuracy.append(self.eval_fn(self.test_data, self.test_labels))
         self._x_axis.append(len(self.train_data))
         
+        # save model function can be writing the learned model to the disk
+        # or even taking a deep copy (in RAM)
+        save_model()
+        # we will recover the saved model in case of multiple runs
+        self.recover_model = recover_model
     
     def _init_pick(self):
         '''Pick init_number_samples of datapoints from the unsupervised data pool
@@ -139,7 +145,7 @@ class ActiveLearner(object):
             self._accuracy.append(self.eval_fn(self.test_data, self.test_labels))
             self._x_axis.append(len(self.train_data))
         
-        # return self._x_axis, self._accuracy
+        return self._x_axis, self._accuracy
             
     
     def plot(self, x_axis=None, y_axis=None, label=None, title='Active Learning', loc=0):
@@ -148,7 +154,7 @@ class ActiveLearner(object):
             x_axis = self._x_axis
             y_axis = self._accuracy
         
-        #%matplotlib inline
+        %matplotlib inline
         from matplotlib import pyplot as plt
         
         x_start = self.init_num_samples
