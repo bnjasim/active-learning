@@ -265,4 +265,26 @@ class ActiveLearner(object):
         plt.grid()
         plt.title(title)
         plt.legend(loc=loc)
-        plt.show()    
+        plt.show()  
+        
+    
+    def experiment(self, n_iter, acquisition_fn, num_samples=10, pool_subset_count = None, num_exp=3):
+        '''Run the experiments for the given number of times (num_exp) and 
+        return average accuracy values over all experiments.'''
+        
+        if type(acquisition_fn) is not list:
+            raise Exception('experiment is to compare different acquisition functions, hence it should be a list')
+        
+        # define new variables to hold averages: useful incase we want to stop experiment forcefully in between
+        self._avg_accuracy = np.zeros((len(acquisition_fn), n_iter+1))
+        
+        for i in range(num_exp):
+            print ('\nExperiment number : ' + str(i+1) + '\n****************\n')
+            self.run(n_iter, acquisition_fn, num_samples, pool_subset_count)
+            self._avg_accuracy = (self._avg_accuracy * (i) + self._accuracy) / (i+1) # running average
+        
+        # finally assign back the avg accuracy to _accuracy variable for proper plotting
+        self._accuracy = self._avg_accuracy
+        
+        return self._avg_accuracy
+            
