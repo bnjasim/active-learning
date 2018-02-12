@@ -10,8 +10,6 @@ def var_ratio(pool_data):
 def random_acq(pool_data):
     return np.random.rand(len(pool_data)) 
 
-
- 
 class ActiveLearner(object):
     '''Performs active learning
     acquisition_fn should return the prob to be acquired corresponding to each datapoint
@@ -87,7 +85,7 @@ class ActiveLearner(object):
         self.train_labels = np.vstack((self.train_labels, labels))
     
     
-    def _active_pick(self, acquisition_fn=None):
+    def _active_pick(self, acquisition_fn):
         """Returns the datapoints which has the highest value as per the acquisition function
         from the pool_data
         """
@@ -96,10 +94,6 @@ class ActiveLearner(object):
         if (len(self.pool_data) < self.num_samples):
             raise Exception('Fatal mistake: pool data is exhausted')
         
-        # acquisition_fn is None in the case of run
-        # but explicitly passed in the case of multi run
-        if (acquisition_fn is None):
-            acquisition_fn = self.acquisition_fn
             
         how_many = self.pool_subset_count if self.pool_subset_count <= len(self.pool_data) else len(self.pool_data)
         pool_subset_random_index = np.random.choice(range(len(self.pool_data)), how_many, replace=False)
@@ -185,7 +179,7 @@ class ActiveLearner(object):
 
         for i in range(n_iter):
             print('\nACQUISITION ITERATION ' + str(i+1) + ' of ' + str(n_iter))
-            self._active_pick()
+            self._active_pick(acquisition_fn)
             self.train_fn(self.train_data, self.train_labels)
             self._accuracy.append(self.eval_fn(self.test_data, self.test_labels))
             self._x_axis.append(len(self.train_data))
