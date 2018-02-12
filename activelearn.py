@@ -126,6 +126,7 @@ class ActiveLearner(object):
     def run(self, n_iter, acquisition_fn, num_samples=10, pool_subset_count = None, go_on=False):
         '''Run active learning for given number of iterations.
         The acquisition_fn is the name of the function which computes acquisition values.
+        aquisition_fn can be a list of function references as well - which is called a multi_run.
         If go_on is True, the run can restart from where we left of'''
         
         self.num_samples = num_samples # required in _active_pick
@@ -140,102 +141,84 @@ class ActiveLearner(object):
             
         if (n_iter * num_samples > len(self.pool_data)):
             raise Exception('Pool data is small.\nReduce the number of iterations or number of samples to pick')
-        
-       
-        
-        if (go_on):
-            # Need to check if multi_run was not called just before!
-            if type(self.acquisition_fn) is list:
-                # list implies a multi run so don't allow run to continue 
-                raise Exception('Sorry! A multi run was called before, can not continue from there!')
-                
-            print ('Continue iterations from where we left of last time\n')
-        else:
-            # Need to restore model and data     
-            self.recover_model()
-            print ('Recovered Saved Model')
-            # set train data to initially picked data only
-            # reset pool_data to the whole data except initial data
-            self.pool_data = np.vstack((self.pool_data, self.train_data[self.init_num_samples:]))
-            self.pool_labels = np.vstack((self.pool_labels, self.train_labels[self.init_num_samples:]))
-            self.train_data = np.delete(self.train_data, range(self.init_num_samples, len(self.train_data)), axis=0)
-            self.train_labels = np.delete(self.train_labels, range(self.init_num_samples, len(self.train_labels)), axis=0)
             
+        if (type(acquisition_fn) is list):
+            # implies a multi_run
+            self.acquisition_fn = acquisition_fn
+        
             # We can predefine the _x_axis 
-            self._x_axis = [self.init_num_samples] # range(self.init_num_samples, self.init_num_samples + num_samples*(n_iter+1), num_samples)
+            self._x_axis = range(self.init_num_samples, self.init_num_samples + num_samples*(n_iter+1), num_samples)
             # initialize _accuracy matrix (2d array)
-            # Do the testing with initial data
-            # We could have saved that value, but it is a good check if the model is properly recovered or not
-            self._accuracy = [self.eval_fn(self.test_data, self.test_labels)]
+            self._accuracy = np.zeros((len(acquisition_fn), len(self._x_axis)))
+
+            for i_aq in range(len(acquisition_fn)):
+                # recover the model
+                self.recover_model()
+                print ('\nRecovered Saved Model')
+                # set train data to initially picked data only
+                # reset pool_data to the whole data except initial data
+                self.pool_data = np.vstack((self.pool_data, self.train_data[self.init_num_samples:]))
+                self.pool_labels = np.vstack((self.pool_labels, self.train_labels[self.init_num_samples:]))
+                self.train_data = np.delete(self.train_data, range(self.init_num_samples, len(self.train_data)), axis=0)
+                self.train_labels = np.delete(self.train_labels, range(self.init_num_samples, len(self.train_labels)), axis=0)
+
+                # Do the testing with initial data
+                # We could have saved that value, but it is a good check if the model is properly recovered or not
+                self._accuracy[i_aq, 0] = self.eval_fn(self.test_data, self.test_labels)
+
+                for i in range(n_iter):
+                    print('\nFor Aquisition function: ' + str(acquisition_fn[i_aq].__name__) + ': ')
+                    print('ACQUISITION ITERATION ' + str(i+1) + ' of ' + str(n_iter))
+                    self._active_pick(acquisition_fn[i_aq])
+                    self.train_fn(self.train_data, self.train_labels)
+                    self._accuracy[i_aq, i+1] = self.eval_fn(self.test_data, self.test_labels)
+                    assert self._x_axis[i+1] == len(self.train_data)
             
-            
-            
-        self.acquisition_fn = acquisition_fn
-        # self.n_iter = n_iter
-        
-        for i in range(n_iter):
-            print('\nACQUISITION ITERATION ' + str(i+1) + ' of ' + str(n_iter))
-            self._active_pick()
-            self.train_fn(self.train_data, self.train_labels)
-            self._accuracy.append(self.eval_fn(self.test_data, self.test_labels))
-            self._x_axis.append(len(self.train_data))
-        
-        return self._x_axis, self._accuracy
-    
-    def multi_run(self, n_iter, acquisition_fn, num_samples=10, pool_subset_count = None):
-        '''acquisition_fn should be a list of acquisition function references.
-        Each time multi run recovers the initial model and make sure that the train_data is empty.
-        '''
-        self.num_samples = num_samples # required in _active_pick
-        
-        if ((pool_subset_count is None) or (pool_subset_count > len(self.pool_data))):
-            self.pool_subset_count = pool_subset_count = len(self.pool_data)
+        # Single acquisition function    
         else:
-            self.pool_subset_count = pool_subset_count 
-        
-        if (pool_subset_count < num_samples):
-            raise Exception("pool subset count can't be smaller than num_samples")
-            
-        if (n_iter * num_samples > len(self.pool_data)):
-            raise Exception('Pool data is small.\nReduce the number of iterations or number of samples to pick')
-        
-        # Make sure aquisition_fns is a list
-        if (type(acquisition_fn) is not list):
-            raise Exception('acquisition_fn should be a list of function references')
-            
-        self.acquisition_fn = acquisition_fn
-        
-        # We can predefine the _x_axis 
-        self._x_axis = range(self.init_num_samples, self.init_num_samples + num_samples*(n_iter+1), num_samples)
-        # initialize _accuracy matrix (2d array)
-        self._accuracy = np.zeros((len(acquisition_fn), len(self._x_axis)))
-        
-        for i_aq in range(len(acquisition_fn)):
-            # recover the model
-            self.recover_model()
-            print ('\nRecovered Saved Model')
-            # set train data to initially picked data only
-            # reset pool_data to the whole data except initial data
-            self.pool_data = np.vstack((self.pool_data, self.train_data[self.init_num_samples:]))
-            self.pool_labels = np.vstack((self.pool_labels, self.train_labels[self.init_num_samples:]))
-            self.train_data = np.delete(self.train_data, range(self.init_num_samples, len(self.train_data)), axis=0)
-            self.train_labels = np.delete(self.train_labels, range(self.init_num_samples, len(self.train_labels)), axis=0)
-            
-            # Do the testing with initial data
-            # We could have saved that value, but it is a good check if the model is properly recovered or not
-            self._accuracy[i_aq, 0] = self.eval_fn(self.test_data, self.test_labels)
-            
+            # It is a single run
+            if (go_on):
+                # Need to check if multi_run was not called just before!
+                if type(self.acquisition_fn) is list:
+                    # list implies a multi run so don't allow run to continue 
+                    raise Exception('Sorry! A multi run was called before, can not continue from there!')
+
+                # if type of aq function is list, then continue is not allowed
+                if type(acquisition_fn) is list:
+                    # list implies a multi run so don't allow run to continue 
+                    raise Exception('Sorry! Continue is not allowed for multi_run!')
+
+                print ('Continue iterations from where we left of last time\n')
+
+            else:
+                # Need to restore model and data     
+                self.recover_model()
+                print ('Recovered Saved Model')
+                # set train data to initially picked data only
+                # reset pool_data to the whole data except initial data
+                self.pool_data = np.vstack((self.pool_data, self.train_data[self.init_num_samples:]))
+                self.pool_labels = np.vstack((self.pool_labels, self.train_labels[self.init_num_samples:]))
+                self.train_data = np.delete(self.train_data, range(self.init_num_samples, len(self.train_data)), axis=0)
+                self.train_labels = np.delete(self.train_labels, range(self.init_num_samples, len(self.train_labels)), axis=0)
+
+                # We can predefine the _x_axis 
+                self._x_axis = [self.init_num_samples] # range(self.init_num_samples, self.init_num_samples + num_samples*(n_iter+1), num_samples)
+                # initialize _accuracy matrix (2d array)
+                # Do the testing with initial data
+                # We could have saved that value, but it is a good check if the model is properly recovered or not
+                self._accuracy = [self.eval_fn(self.test_data, self.test_labels)]
+
+            self.acquisition_fn = acquisition_fn
+            # self.n_iter = n_iter
+
             for i in range(n_iter):
-                print('\nFor Aquisition function: ' + str(acquisition_fn[i_aq].__name__) + ': ')
-                print('ACQUISITION ITERATION ' + str(i+1) + ' of ' + str(n_iter))
-                self._active_pick(acquisition_fn[i_aq])
+                print('\nACQUISITION ITERATION ' + str(i+1) + ' of ' + str(n_iter))
+                self._active_pick()
                 self.train_fn(self.train_data, self.train_labels)
-                self._accuracy[i_aq, i+1] = self.eval_fn(self.test_data, self.test_labels)
-                assert self._x_axis[i+1] == len(self.train_data)
+                self._accuracy.append(self.eval_fn(self.test_data, self.test_labels))
+                self._x_axis.append(len(self.train_data))
         
-        
-        return self._x_axis, self._accuracy
-                 
+        return self._x_axis, self._accuracy    
         
         
     def plot(self, x_axis=None, y_axis=None, label=None, title='Active Learning', loc=0):
