@@ -17,7 +17,6 @@ class ActiveLearner(object):
     acquisition_fn should return the prob to be acquired corresponding to each datapoint
     in the (subset of) pool data given as the argument'''
     
-    
     def __init__(self, pool_data, pool_labels, test_data, test_labels, 
                  clear_model_fn, train_fn, eval_fn, 
                  save_model, recover_model,
@@ -124,10 +123,10 @@ class ActiveLearner(object):
         self.train_labels = np.vstack((self.train_labels, labels))
     
     
-    def run(self, n_iter, acquisition_fn, num_samples=10, pool_subset_count = None):
+    def run(self, n_iter, acquisition_fn, num_samples=10, pool_subset_count = None, go_on=False):
         '''Run active learning for given number of iterations.
         The acquisition_fn is the name of the function which computes acquisition values.
-        Run can restart from where we left of, meaning we can all run() again and again.'''
+        If go_on is True, the run can restart from where we left of'''
         
         self.num_samples = num_samples # required in _active_pick
         
@@ -141,6 +140,35 @@ class ActiveLearner(object):
             
         if (n_iter * num_samples > len(self.pool_data)):
             raise Exception('Pool data is small.\nReduce the number of iterations or number of samples to pick')
+        
+       
+        
+        if (go_on):
+            # Need to check if multi_run was not called just before!
+            if type(self.acquisition_fn) is list:
+                # list implies a multi run so don't allow run to continue 
+                raise Exception('Sorry! A multi run was called before, can not continue from there!')
+                
+            print ('Continue iterations from where we left of last time\n')
+        else:
+            # Need to restore model and data     
+            self.recover_model()
+            print ('Recovered Saved Model')
+            # set train data to initially picked data only
+            # reset pool_data to the whole data except initial data
+            self.pool_data = np.vstack((self.pool_data, self.train_data[self.init_num_samples:]))
+            self.pool_labels = np.vstack((self.pool_labels, self.train_labels[self.init_num_samples:]))
+            self.train_data = np.delete(self.train_data, range(self.init_num_samples, len(self.train_data)), axis=0)
+            self.train_labels = np.delete(self.train_labels, range(self.init_num_samples, len(self.train_labels)), axis=0)
+            
+            # We can predefine the _x_axis 
+            self._x_axis = [self.init_num_samples] # range(self.init_num_samples, self.init_num_samples + num_samples*(n_iter+1), num_samples)
+            # initialize _accuracy matrix (2d array)
+            # Do the testing with initial data
+            # We could have saved that value, but it is a good check if the model is properly recovered or not
+            self._accuracy = [self.eval_fn(self.test_data, self.test_labels)]
+            
+            
             
         self.acquisition_fn = acquisition_fn
         # self.n_iter = n_iter
@@ -185,7 +213,7 @@ class ActiveLearner(object):
         for i_aq in range(len(acquisition_fn)):
             # recover the model
             self.recover_model()
-            print ('Recovered Saved Model')
+            print ('\nRecovered Saved Model')
             # set train data to initially picked data only
             # reset pool_data to the whole data except initial data
             self.pool_data = np.vstack((self.pool_data, self.train_data[self.init_num_samples:]))
@@ -240,12 +268,11 @@ class ActiveLearner(object):
         
         else:
             if label is None:
-                label = self.acquisition_fn.__name__
+                label = self.acquisition_fn[0].__name__ if type(self.acquisition_fn) is list else self.acquisition_fn.__name__
 
             plt.plot(x_axis, y_axis, label=label)
         
         plt.grid()
         plt.title(title)
         plt.legend(loc=loc)
-        plt.show()
-        
+        plt.show()    
