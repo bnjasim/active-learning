@@ -154,7 +154,7 @@ class ActiveLearner(object):
     
     # This shouldn't be accessed direclty from outside, but only from run
     def _run(self, n_iter, acquisition_fn, go_on):
-        # It is a single run
+        # only a single acquisition function
         if (go_on):
             # Need to check if multi_run was not called just before!
             if type(self.acquisition_fn) is list:
@@ -233,6 +233,9 @@ class ActiveLearner(object):
             x_axis = self._x_axis
             y_axis = np.array(self._accuracy)
         
+        if len(x_axis) <= 1:
+            raise Exception('First run before plotting!')
+        
         x_start = x_axis[0] # self.init_num_samples
         x_end = x_axis[-1]
         y_start = np.round(np.min(y_axis), 1)
@@ -254,7 +257,8 @@ class ActiveLearner(object):
         
         else:
             if label is None:
-                label = self.acquisition_fn[0].__name__ if type(self.acquisition_fn) is list else self.acquisition_fn.__name__
+                acquisition_fn = self.acquisition_fn[0] if type(self.acquisition_fn) is list else self.acquisition_fn
+                label = acquisition_fn.__name__
 
             plt.plot(x_axis, y_axis, label=label)
         
