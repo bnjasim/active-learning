@@ -1,11 +1,6 @@
 import numpy as np
 
 
-def var_ratio(pool_data):
-    # Var ratio active learning acquisition function
-    D_probs = model.predict_proba(pool_data)  
-    return 1.0 - np.max(D_probs, axis=1)
-
 
 def random_acq(pool_data):
     return np.random.rand(len(pool_data)) 
@@ -226,7 +221,7 @@ class ActiveLearner(object):
     
     def plot(self, x_axis=None, y_axis=None, label=None, title='Active Learning', loc=0):
         '''Plot the accuracy'''
-        %matplotlib inline
+        # %matplotlib inline
         from matplotlib import pyplot as plt
             
         if x_axis is None:

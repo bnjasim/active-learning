@@ -52,6 +52,12 @@ def define_model():
     model.compile(loss = 'categorical_crossentropy', optimizer = 'adam', metrics = ['accuracy'])
 
 
+def var_ratio_keras(pool_data):
+    # Var ratio active learning acquisition function
+    D_probs = model.predict_proba(pool_data)  
+    return 1.0 - np.max(D_probs, axis=1)
+
+
 def train_keras(data, labels):
     print ('Training data size: ' + str(len(data)))
     model.fit(data, labels, batch_size=batch_size, epochs=nb_epochs, verbose=1)
@@ -63,9 +69,16 @@ def test_keras(data, labels):
     print ('\nTest accuracy:' + str(acc))
     return acc
 
+def save_model():
+    model.save_weights('tmp/initial_model.h5')
+    
+def recover_model():
+    model.load_weights('tmp/initial_model.h5')
 
-a = ActiveLearner(train_data, train_labels, test_data, test_labels, define_model, train_keras, test_keras)
 
+a = ActiveLearner(train_data, train_labels, test_data, test_labels, define_model, train_keras, test_keras, save_model, recover_model)
 # a.run(20, var_ratio, pool_subset_count=1000)
-a.run(10, random_acq, pool_subset_count=1000)
+# a.run(10, random_acq, pool_subset_count=1000)
+# Averaged accuracy over multiple experiments
+a.experiment(10, [random_acq, var_ratio_keras], pool_subset_count=1000, num_exp=3)
 a.plot()
