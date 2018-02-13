@@ -1,7 +1,5 @@
 import numpy as np
 
-
-
 def random_acq(pool_data):
     return np.random.rand(len(pool_data)) 
 
@@ -282,4 +280,11 @@ class ActiveLearner(object):
         self._accuracy = self._avg_accuracy
         
         return self._avg_accuracy
+
+    def save(self, name='accuracy.npy'):
+        '''save the accuracy values'''
+        np.save(name, (self._x_axis, self._accuracy))
+
+
+
             
