@@ -100,7 +100,7 @@ def train_tf_model(data, labels):
         
         sess.run(train_step, feed_dict={x: batch_x, y_: batch_y, keep_prob1:drop_train, keep_prob2:drop_train})
      
-    print("test accuracy %g"%sess.run(accuracy, feed_dict={x: test_data, y_: test_labels, keep_prob1:1.0, keep_prob2:1.0}))
+    # print("test accuracy %g"%sess.run(accuracy, feed_dict={x: test_data, y_: test_labels, keep_prob1:1.0, keep_prob2:1.0}))
     print ('Total time to train: ' + str(time.time() - start_time) + 's')
 
 def test_tf_model(data, labels):

@@ -91,7 +91,7 @@ def train_tf_lstm(data, labels):
         
         sess.run(opt, feed_dict={x: batch_x, y: batch_y})
      
-    print("test accuracy %g"%sess.run(accuracy, feed_dict={x: test_data, y: test_labels}))
+    # print("test accuracy %g"%sess.run(accuracy, feed_dict={x: test_data, y: test_labels}))
     print ('Total time to train: ' + str(time.time() - start_time) + 's')
 
 
