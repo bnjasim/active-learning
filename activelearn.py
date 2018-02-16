@@ -105,11 +105,11 @@ class ActiveLearner(object):
         # some heuristics - if we are picking more than half of pool_data, then may not be a good idea
         if num_to_pick > how_many/2.0:
             num_to_pick /= 2
-
+        
         # if still greater, then we probably want to use random sampling only
         if num_to_pick > how_many:
             num_to_pick = how_many
-        
+            
         pos = np.random.choice(np.argpartition(values, num_to_pick)[num_to_pick:], self.num_samples, replace=False)
         
         datapoints = X_pool_subset[pos]
@@ -246,9 +246,13 @@ class ActiveLearner(object):
         x_start = x_axis[0] # self.init_num_samples
         x_end = x_axis[-1]
         y_start = np.round(np.min(y_axis), 1)
-        y_end = 1.0
         if (y_start > np.min(y_axis)):
             y_start -= 0.1
+            
+        # y_end = 1.0
+        y_end = np.round(np.max(y_axis), 1)
+        if (y_end < np.max(y_axis)):
+            y_end += 0.1
         
         plt.axis([x_start, x_end, y_start, y_end])
         
@@ -293,5 +297,5 @@ class ActiveLearner(object):
         # finally assign back the avg accuracy to _accuracy variable for proper plotting
         self._accuracy = self._avg_accuracy
         
-        return self._avg_accuracy
+        return self._x_axis, self._accuracy 
             
