@@ -99,18 +99,18 @@ class ActiveLearner(object):
 
         values = acquisition_fn(X_pool_subset) # NOTE! This shouldn't be self.acquisition_fn
         # pick num_samples of higest values in sorted (descending) order
-        # pos = np.argpartition(values, -self.num_samples)[-self.num_samples:]
+        pos = np.argpartition(values, -self.num_samples)[-self.num_samples:]
         
         # Instead of taking the 10 most uncertain values, why not take 100 most uncertain values 
         # and then pick 10 randomly?
-        num_to_pick = self.num_samples * 10
+        # num_to_pick = self.num_samples * 2
         # some heuristics - if we are picking more than half of pool_data, then may not be a good idea
-        if num_to_pick > how_many/2.0:
-            num_to_pick /= 2
+        # if num_to_pick > how_many/2.0:
+        #    num_to_pick /= 2
         
         # if still greater, then we probably want to use random sampling only
-        if num_to_pick > how_many:
-            num_to_pick = how_many
+        #if num_to_pick > how_many:
+        #    num_to_pick = how_many
             
         pos = np.random.choice(np.argpartition(values, num_to_pick)[num_to_pick:], self.num_samples, replace=False)
         
@@ -213,7 +213,7 @@ class ActiveLearner(object):
             self._accuracy[i_aq, 0] = self.eval_fn(self.test_data, self.test_labels)
 
             for i in range(n_iter):
-                print('\nFor Aquisition function: ' + str(acquisition_fn[i_aq].__name__) + ': ')
+                print('\nExperiment ' + str(self.experiment_no) + ' Aquisition function: ' + str(acquisition_fn[i_aq].__name__) + ': ')
                 print('ACQUISITION ITERATION ' + str(i+1) + ' of ' + str(n_iter))
                 self._active_pick(acquisition_fn[i_aq])
                 self.train_fn(self.train_data, self.train_labels)
