@@ -33,7 +33,7 @@ class ActiveLearner(object):
         
         self._accuracy = []
         self._x_axis = []
-        self.acquisition_fn = object # just a placeholder for plot() function in case plot is called from outside
+        self.acquisition_fn = None
         
         # initial training. 
         # But make sure that the model is cleared of previous training
@@ -241,7 +241,7 @@ class ActiveLearner(object):
             y_axis = np.array(self._accuracy)
         
         if len(x_axis) <= 1:
-            raise Exception('First run before plotting!')
+            raise Exception('Please run experiment before plotting!')
         
         x_start = x_axis[0] # self.init_num_samples
         x_end = x_axis[-1]
@@ -260,6 +260,8 @@ class ActiveLearner(object):
         if (len(y_axis.shape) > 1):
             # no label is given or label doesn't correpond to multi run
             if label is None or len(label) != len(y_axis):
+                if (self.acquisition_fn is None):
+                    raise Exception('Please pass the labels array as an argument')
                 label = [s.__name__ for s in self.acquisition_fn]  
 
             for i in range(len(y_axis)):
@@ -268,6 +270,8 @@ class ActiveLearner(object):
         
         else:
             if label is None:
+                if (self.acquisition_fn is None):
+                    raise Exception('Please pass the label as an argument')
                 acquisition_fn = self.acquisition_fn[0] if type(self.acquisition_fn) is list else self.acquisition_fn
                 label = acquisition_fn.__name__
 
