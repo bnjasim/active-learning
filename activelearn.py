@@ -97,7 +97,21 @@ class ActiveLearner(object):
 
         values = acquisition_fn(X_pool_subset) # NOTE! This shouldn't be self.acquisition_fn
         # pick num_samples of higest values in sorted (descending) order
-        pos = np.argpartition(values, -self.num_samples)[-self.num_samples:]
+        # pos = np.argpartition(values, -self.num_samples)[-self.num_samples:]
+        
+        # Instead of taking the 10 most uncertain values, why not take 100 most uncertain values 
+        # and then pick 10 randomly?
+        num_to_pick = self.num_samples * 10
+        # some heuristics - if we are picking more than half of pool_data, then may not be a good idea
+        if num_to_pick > how_many/2.0:
+            num_to_pick /= 2
+
+        # if still greater, then we probably want to use random sampling only
+        if num_to_pick > how_many:
+            num_to_pick = how_many
+        
+        pos = np.random.choice(np.argpartition(values, num_to_pick)[num_to_pick:], self.num_samples, replace=False)
+        
         datapoints = X_pool_subset[pos]
         labels = y_pool_subset[pos]
         #print pool_subset_random_index[:10]
@@ -219,7 +233,7 @@ class ActiveLearner(object):
     
     def plot(self, x_axis=None, y_axis=None, label=None, title='Active Learning', loc=0):
         '''Plot the accuracy'''
-        # %matplotlib inline
+        %matplotlib inline
         from matplotlib import pyplot as plt
             
         if x_axis is None:
@@ -280,11 +294,4 @@ class ActiveLearner(object):
         self._accuracy = self._avg_accuracy
         
         return self._avg_accuracy
-
-    def save(self, name='accuracy.npy'):
-        '''save the accuracy values'''
-        np.save(name, (self._x_axis, self._accuracy))
-
-
-
             
