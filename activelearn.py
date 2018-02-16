@@ -23,6 +23,8 @@ class ActiveLearner(object):
         self.train_fn = train_fn
         self.eval_fn = eval_fn
         
+        self.experiment_no = 1 
+        
         
         if (self.init_num_samples > len(pool_data)):
             raise Exception('Can not pick more samples than what is available in the pool data')
@@ -185,7 +187,7 @@ class ActiveLearner(object):
         # self.n_iter = n_iter
 
         for i in range(n_iter):
-            print('\nACQUISITION ITERATION ' + str(i+1) + ' of ' + str(n_iter))
+            print('\nExperiment ' + str(self.experiment_no) + ' ACQUISITION ITERATION ' + str(i+1) + ' of ' + str(n_iter))
             self._active_pick(acquisition_fn)
             self.train_fn(self.train_data, self.train_labels)
             self._accuracy.append(self.eval_fn(self.test_data, self.test_labels))
@@ -294,7 +296,8 @@ class ActiveLearner(object):
         self._avg_accuracy = np.zeros((len(acquisition_fn), n_iter+1))
         
         for i in range(num_exp):
-            print ('\nExperiment number : ' + str(i+1) + '\n****************\n')
+            self.experiment_no = i+1
+            print ('\nExperiment number : ' + str(self.experiment_no) + '\n****************\n')
             self.run(n_iter, acquisition_fn, num_samples, pool_subset_count)
             self._avg_accuracy = (self._avg_accuracy * (i) + self._accuracy) / (i+1) # running average
         
