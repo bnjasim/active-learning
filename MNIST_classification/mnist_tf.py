@@ -105,7 +105,7 @@ def train_tf_model(data, labels):
 
 def test_tf_model(data, labels):
     print('Evaluate Model Test Accuracy after training')
-    acc = sess.run(accuracy, feed_dict={x: test_data, y_: test_labels, keep_prob1:1.0, keep_prob2:1.0})
+    acc = sess.run(accuracy, feed_dict={x:data, y_:labels, keep_prob1:1.0, keep_prob2:1.0})
     # print('Test score:', score)
     print ('Test accuracy:' + str(acc))
     return acc

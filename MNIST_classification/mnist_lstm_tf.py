@@ -97,7 +97,7 @@ def train_tf_lstm(data, labels):
 
 def test_tf_lstm(data, labels):
     print('Evaluate Model Test Accuracy after training')
-    acc = sess.run(accuracy, feed_dict={x: test_data, y: test_labels})
+    acc = sess.run(accuracy, feed_dict={x:data, y:labels})
     # print('Test score:', score)
     print ('Test accuracy:' + str(acc))
     return acc
