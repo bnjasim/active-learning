@@ -125,12 +125,13 @@ def restore_tf_model():
     print("Model restored.")
 
 out_prob = tf.nn.softmax(y_conv)
+uncertainty = 1.0 - tf.reduce_max(out_prob, axis=1)
 
 def var_ratio_tf(pool_data):
     # Var ratio active learning acquisition function
-    D_probs = sess.run(out_prob, feed_dict={x: pool_data, keep_prob1:1.0, keep_prob2:1.0})
-    return 1.0 - np.max(D_probs, axis=1)
-
+    # D_probs = sess.run(out_prob, feed_dict={x: pool_data, keep_prob1:1.0, keep_prob2:1.0})
+    # return 1.0 - np.max(D_probs, axis=1)
+    return sess.run(uncertainty, feed_dict={x: pool_data, keep_prob1:1.0, keep_prob2:1.0})
 
 a = ActiveLearner(train_data, train_labels, test_data, test_labels, clear_tf_model, train_tf_model, test_tf_model, save_tf_model, restore_tf_model, init_num_samples=20)
 # a.run(2, [random_acq, var_ratio_tf], pool_subset_count=1000)
