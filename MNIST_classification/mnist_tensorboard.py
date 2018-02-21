@@ -83,20 +83,19 @@ tf.summary.scalar('accuracy', accuracy)
 with tf.name_scope('count_max_prob'):
     softmax = tf.nn.softmax(y_conv, name='softmax')
     max_prob = tf.reduce_max(softmax, axis=1)
-    count_ymax99 = tf.reduce_sum(tf.cast(max_prob >= 0.99, tf.float32))
-    count_ymax95 = tf.reduce_sum(tf.cast(max_prob >= 0.95, tf.float32))
-    count_ymax90 = tf.reduce_sum(tf.cast(max_prob >= 0.90, tf.float32))
-    count_ymax80 = tf.reduce_sum(tf.cast(max_prob >= 0.80, tf.float32))
-    count_ymax70 = tf.reduce_sum(tf.cast(max_prob >= 0.70, tf.float32))
-      
+    ratio_ymax99 = tf.reduce_mean(tf.cast(max_prob >= 0.99, tf.float32))
+    ratio_ymax95 = tf.reduce_mean(tf.cast(max_prob >= 0.95, tf.float32))
+    ratio_ymax90 = tf.reduce_mean(tf.cast(max_prob >= 0.90, tf.float32))
+    ratio_ymax80 = tf.reduce_mean(tf.cast(max_prob >= 0.80, tf.float32))
+    ratio_ymax70 = tf.reduce_mean(tf.cast(max_prob >= 0.70, tf.float32))
+     
 summ = []
 
-summ.append(tf.summary.scalar('count_max_prob_above_threshold99', count_ymax99))
-summ.append(tf.summary.scalar('count_max_prob_above_threshold95', count_ymax95))
-summ.append(tf.summary.scalar('count_max_prob_above_threshold90', count_ymax90))
-summ.append(tf.summary.scalar('count_max_prob_above_threshold80', count_ymax80))
-summ.append(tf.summary.scalar('count_max_prob_above_threshold70', count_ymax70))
-
+summ.append(tf.summary.scalar('count_max_prob_above_threshold99', ratio_ymax99))
+summ.append(tf.summary.scalar('count_max_prob_above_threshold95', ratio_ymax95))
+summ.append(tf.summary.scalar('count_max_prob_above_threshold90', ratio_ymax90))
+summ.append(tf.summary.scalar('count_max_prob_above_threshold80', ratio_ymax80))
+summ.append(tf.summary.scalar('count_max_prob_above_threshold70', ratio_ymax70))
 
 logdir = './tmp/tensorboard/activelearning/'
 pool_writer = tf.summary.FileWriter(logdir + '/pool', sess.graph)
@@ -122,7 +121,7 @@ def get_next_batch(data, labels, batch_size):
     indices = np.random.choice(range(len(data)), batch_size, replace=False)
     return data[indices], labels[indices]
 
-def train_tf_model(data, labels):
+def train_tf_model(data, labels, step=None):
     print ('Training data size: ' + str(len(data)))
     start_time = time.time()
     batch_size = 100
@@ -141,7 +140,11 @@ def train_tf_model(data, labels):
 def test_tf_model(data, labels):
     print('Evaluate Model Test Accuracy after training')
     summary, acc = sess.run([merged, accuracy], feed_dict={x:data, y_:labels, keep_prob1:1.0, keep_prob2:1.0})
-    test_writer.add_summary(summary)
+    if step:
+        test_writer.add_summary(summary, step)
+    else:
+        test_writer.add_summary(summary)
+
     print ('Test accuracy:' + str(acc))
     return acc
 
@@ -177,7 +180,10 @@ def compute_pool_data_summary(pool_data):
     X_pool_subset = pool_data[pool_subset_random_index]
     # y_pool_subset = self.pool_labels[pool_subset_random_index]
     summary = sess.run(merged_pool, feed_dict={x:pool_data, keep_prob1:1.0, keep_prob2:1.0})
-    pool_writer.add_summary(summary)
+    if step:
+        pool_writer.add_summary(summary, step)
+    else:
+        pool_writer.add_summary(summary)
 
 a = ActiveLearner(train_data, train_labels, test_data, test_labels, clear_tf_model, train_tf_model, test_tf_model, save_tf_model, restore_tf_model, init_num_samples=20)
 # a.run(2, [random_acq, var_ratio_tf], pool_subset_count=1000)

@@ -44,7 +44,7 @@ class ActiveLearner(object):
         print ('Initial Training')
         self.train_fn(self.train_data, self.train_labels)
         # evaluate the accuracy after initial training
-        self._accuracy.append(self.eval_fn(self.test_data, self.test_labels))
+        self._accuracy.append(self.eval_fn(self.test_data, self.test_labels, step=len(self.train_data)))
         self._x_axis.append(len(self.train_data))
         
         # unsupervised pick?? Later!
@@ -193,12 +193,12 @@ class ActiveLearner(object):
             print('\nExperiment ' + str(self.experiment_no) + ' ACQUISITION ITERATION ' + str(i+1) + ' of ' + str(n_iter))
             self._active_pick(acquisition_fn)
             self.train_fn(self.train_data, self.train_labels)
-            self._accuracy.append(self.eval_fn(self.test_data, self.test_labels))
+            self._accuracy.append(self.eval_fn(self.test_data, self.test_labels, step=len(self.train_data)))
             self._x_axis.append(len(self.train_data))
             
             # unsupervised pick?? Later!
             # Compute summaries over the pool_data
-            compute_pool_data_summary(self.pool_data)
+            compute_pool_data_summary(self.pool_data, step=len(self.train_data))
     
     
 
@@ -224,12 +224,12 @@ class ActiveLearner(object):
                 print('ACQUISITION ITERATION ' + str(i+1) + ' of ' + str(n_iter))
                 self._active_pick(acquisition_fn[i_aq])
                 self.train_fn(self.train_data, self.train_labels)
-                self._accuracy[i_aq, i+1] = self.eval_fn(self.test_data, self.test_labels)
+                self._accuracy[i_aq, i+1] = self.eval_fn(self.test_data, self.test_labels, step=len(self.train_data))
                 assert self._x_axis[i+1] == len(self.train_data)
                 
                 # unsupervised pick?? Later!
                 # Compute summaries over the pool_data
-                compute_pool_data_summary(self.pool_data)
+                compute_pool_data_summary(self.pool_data, step=len(self.train_data))
 
     
     def _recover_model_and_data(self):
