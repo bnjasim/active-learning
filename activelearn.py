@@ -47,6 +47,10 @@ class ActiveLearner(object):
         self._accuracy.append(self.eval_fn(self.test_data, self.test_labels))
         self._x_axis.append(len(self.train_data))
         
+        # unsupervised pick?? Later!
+        # Compute summaries over the pool_data
+        compute_pool_data_summary(self.pool_data)
+        
         # save model function can be writing the learned model to the disk
         # or even taking a deep copy (in RAM)
         save_model()
@@ -81,7 +85,7 @@ class ActiveLearner(object):
     
     
     def _active_pick(self, acquisition_fn):
-        """Returns the datapoints which has the highest value as per the acquisition function
+        """Returns the datapoints which have the highest value as per the acquisition function
         from the pool_data
         """
         # This condition should ideally be False because we have already done 
@@ -109,10 +113,9 @@ class ActiveLearner(object):
         #    num_to_pick /= 2
         
         # if still greater, then we probably want to use random sampling only
-        #if num_to_pick > how_many:
-        #    num_to_pick = how_many
-            
-        pos = np.random.choice(np.argpartition(values, num_to_pick)[num_to_pick:], self.num_samples, replace=False)
+        # if num_to_pick > how_many:
+        #    num_to_pick = how_many    
+        # pos = np.random.choice(np.argpartition(values, num_to_pick)[num_to_pick:], self.num_samples, replace=False)
         
         datapoints = X_pool_subset[pos]
         labels = y_pool_subset[pos]
@@ -192,6 +195,10 @@ class ActiveLearner(object):
             self.train_fn(self.train_data, self.train_labels)
             self._accuracy.append(self.eval_fn(self.test_data, self.test_labels))
             self._x_axis.append(len(self.train_data))
+            
+            # unsupervised pick?? Later!
+            # Compute summaries over the pool_data
+            compute_pool_data_summary(self.pool_data)
     
     
 
@@ -220,6 +227,10 @@ class ActiveLearner(object):
                 self._accuracy[i_aq, i+1] = self.eval_fn(self.test_data, self.test_labels)
                 assert self._x_axis[i+1] == len(self.train_data)
                 
+                # unsupervised pick?? Later!
+                # Compute summaries over the pool_data
+                compute_pool_data_summary(self.pool_data)
+
     
     def _recover_model_and_data(self):
         self.recover_model()
