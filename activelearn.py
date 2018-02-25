@@ -45,7 +45,7 @@ class ActiveLearner(object):
         self.train_fn(self.train_data, self.train_labels)
         # evaluate the accuracy after initial training
         self._accuracy.append(self.eval_fn(self.test_data, self.test_labels, step=len(self.train_data)))
-        self._x_axis.append(len(self.train_data))
+        self._x_axis.append(len(self.train_data)) # this is most certainly over written later and hence useless here!
         
         # unsupervised pick?? Later!
         # Compute summaries over the pool_data
@@ -88,8 +88,8 @@ class ActiveLearner(object):
         """Returns the datapoints which have the highest value as per the acquisition function
         from the pool_data
         """
-        # This condition should ideally be False because we have already done 
-        # the necessary checks while initializing run() function
+        # This condition should ideally be False because we have already done the - 
+        # necessary checks while initializing run() function
         if (len(self.pool_data) < self.num_samples):
             raise Exception('Fatal mistake: pool data is exhausted')
         
@@ -106,7 +106,7 @@ class ActiveLearner(object):
         pos = np.argpartition(values, -self.num_samples)[-self.num_samples:]
         
         # Instead of taking the 10 most uncertain values, why not take 100 most uncertain values 
-        # and then pick 10 randomly?
+        # and then pick 10 randomly? - Sorry that failed for var-ratio!
         # num_to_pick = self.num_samples * 2
         # some heuristics - if we are picking more than half of pool_data, then may not be a good idea
         # if num_to_pick > how_many/2.0:
@@ -129,11 +129,11 @@ class ActiveLearner(object):
         self.train_labels = np.vstack((self.train_labels, labels))
     
     
-    def run(self, n_iter, acquisition_fn, num_samples=10, pool_subset_count = None, go_on=False):
+    def run(self, n_iter, acquisition_fn, num_samples=10, pool_subset_count = None):
         '''Run active learning for given number of iterations.
-        The acquisition_fn is the name of the function which computes acquisition values.
+        The acquisition_fn is(are) the name of the function(s) which computes acquisition values.
         aquisition_fn can be a list of function references as well - which is called a multi_run.
-        If go_on is True, the run can restart from where we left of'''
+        '''
         
         self.num_samples = num_samples # required in _active_pick
         
@@ -149,61 +149,10 @@ class ActiveLearner(object):
             raise Exception('Pool data is small.\nReduce the number of iterations or number of samples to pick')
         
         # If aquisition_fn is a list - then multi_run. 
-        if (type(acquisition_fn) is list):    
-            # if type of aq function is list, then continue/go_on is not allowed
-            if (go_on):
-                # list implies a multi run so don't allow run to continue 
-                raise Exception('Sorry! Continue is not allowed for multiple aquistion functions!')
-                
-            self._multi_run(n_iter, acquisition_fn)   
-              
-        else:
-            # Single acquisition function  
-            self._run(n_iter, acquisition_fn, go_on)
-        
-        return self._x_axis, self._accuracy    
+        if (type(acquisition_fn) is not list):    
+            # if type of aq function is not list then make it a list
+            acquisition_fn = [acquisition_fn]   
     
-    
-    # This shouldn't be accessed direclty from outside, but only from run
-    def _run(self, n_iter, acquisition_fn, go_on):
-        # only a single acquisition function
-        if (go_on):
-            # Need to check if multi_run was not called just before!
-            if type(self.acquisition_fn) is list:
-                # list implies a multi run so don't allow run to continue 
-                raise Exception('Sorry! A multi run was called before, can not continue from there!')
-
-            print ('Continue iterations from where we left of last time\n')
-
-        else:
-            # Need to restore model and data     
-            self._recover_model_and_data()
-            
-            # We can predefine the _x_axis 
-            self._x_axis = [self.init_num_samples] # range(self.init_num_samples, self.init_num_samples + num_samples*(n_iter+1), num_samples)
-            # initialize _accuracy matrix (2d array)
-            # Do the testing with initial data
-            # We could have saved that value, but it is a good check if the model is properly recovered or not
-            self._accuracy = [self.eval_fn(self.test_data, self.test_labels)]
-
-        self.acquisition_fn = acquisition_fn
-        # self.n_iter = n_iter
-
-        for i in range(n_iter):
-            print('\nExperiment ' + str(self.experiment_no) + ' ACQUISITION ITERATION ' + str(i+1) + ' of ' + str(n_iter))
-            self._active_pick(acquisition_fn)
-            self.train_fn(self.train_data, self.train_labels)
-            self._accuracy.append(self.eval_fn(self.test_data, self.test_labels, step=len(self.train_data)))
-            self._x_axis.append(len(self.train_data))
-            
-            # unsupervised pick?? Later!
-            # Compute summaries over the pool_data
-            compute_pool_data_summary(self.pool_data, step=len(self.train_data))
-    
-    
-
-    # This shouldn't be accessed direclty from outside, but only from run
-    def _multi_run(self, n_iter, acquisition_fn):
         self.acquisition_fn = acquisition_fn
         
         # We can predefine the _x_axis 
@@ -230,7 +179,10 @@ class ActiveLearner(object):
                 # unsupervised pick?? Later!
                 # Compute summaries over the pool_data
                 compute_pool_data_summary(self.pool_data, step=len(self.train_data))
-
+        
+        return self._x_axis, self._accuracy 
+    
+    
     
     def _recover_model_and_data(self):
         self.recover_model()
@@ -268,27 +220,16 @@ class ActiveLearner(object):
             y_end += 0.1
         
         plt.axis([x_start, x_end, y_start, y_end])
-        
-        # if y_axis (_accuracy) is a matrix, not a 1d array
-        if (len(y_axis.shape) > 1):
-            # no label is given or label doesn't correpond to multi run
-            if label is None or len(label) != len(y_axis):
-                if (self.acquisition_fn is None):
-                    raise Exception('Please pass the labels array as an argument')
-                label = [s.__name__ for s in self.acquisition_fn]  
 
-            for i in range(len(y_axis)):
-                 plt.plot(x_axis, y_axis[i], label=label[i])   
+        # no label is given or label doesn't correpond to multi run
+        if label is None or len(label) != len(y_axis):
+            if (self.acquisition_fn is None):
+                raise Exception('Please pass the labels array as an argument')
+            label = [s.__name__ for s in self.acquisition_fn]  
 
-        
-        else:
-            if label is None:
-                if (self.acquisition_fn is None):
-                    raise Exception('Please pass the label as an argument')
-                acquisition_fn = self.acquisition_fn[0] if type(self.acquisition_fn) is list else self.acquisition_fn
-                label = acquisition_fn.__name__
+        for i in range(len(y_axis)):
+             plt.plot(x_axis, y_axis[i], label=label[i])   
 
-            plt.plot(x_axis, y_axis, label=label)
         
         plt.grid()
         plt.title(title)
