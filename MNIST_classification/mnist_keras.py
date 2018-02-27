@@ -52,7 +52,7 @@ def define_model():
     model.compile(loss = 'categorical_crossentropy', optimizer = 'adam', metrics = ['accuracy'])
 
 
-def var_ratio_keras(pool_data):
+def var_ratio_keras(pool_data, step=None):
     # Var ratio active learning acquisition function
     D_probs = model.predict_proba(pool_data)  
     return 1.0 - np.max(D_probs, axis=1)
@@ -62,7 +62,7 @@ def train_keras(data, labels, step=None):
     print ('Training data size: ' + str(len(data)))
     model.fit(data, labels, batch_size=batch_size, epochs=nb_epochs, verbose=1)
 
-def test_keras(data, labels):
+def test_keras(data, labels, step=None):
     print('Evaluate Model Test Accuracy after training')
     score, acc = model.evaluate(data, labels, verbose=1)
     # print('Test score:', score)

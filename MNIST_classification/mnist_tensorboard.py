@@ -137,7 +137,7 @@ def train_tf_model(data, labels, step=None):
     # print("test accuracy %g"%sess.run(accuracy, feed_dict={x: test_data, y_: test_labels, keep_prob1:1.0, keep_prob2:1.0}))
     print ('Total time to train: ' + str(time.time() - start_time) + 's')
 
-def test_tf_model(data, labels):
+def test_tf_model(data, labels, step=None):
     print('Evaluate Model Test Accuracy after training')
     summary, acc = sess.run([merged, accuracy], feed_dict={x:data, y_:labels, keep_prob1:1.0, keep_prob2:1.0})
     if step:
@@ -165,7 +165,7 @@ def restore_tf_model():
 out_prob = tf.nn.softmax(y_conv)
 uncertainty = 1.0 - tf.reduce_max(out_prob, axis=1)
 
-def var_ratio_tf(pool_data):
+def var_ratio_tf(pool_data, step=None):
     # Var ratio active learning acquisition function
     # D_probs = sess.run(out_prob, feed_dict={x: pool_data, keep_prob1:1.0, keep_prob2:1.0})
     # return 1.0 - np.max(D_probs, axis=1)

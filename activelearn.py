@@ -1,6 +1,6 @@
 import numpy as np
 
-def random_acq(pool_data):
+def random_acq(pool_data, step=None):
     return np.random.rand(len(pool_data)) 
 
 class ActiveLearner(object):
@@ -84,9 +84,10 @@ class ActiveLearner(object):
         self.train_labels = np.vstack((self.train_labels, labels))
     
     
-    def _active_pick(self, acquisition_fn):
+    def _active_pick(self, acquisition_fn, step=None):
         """Returns the datapoints which have the highest value as per the acquisition function
-        from the pool_data
+        from the pool_data.
+        step is an optional argument which can be used for things like changing acquisition function according to iteration number
         """
         # This condition should ideally be False because we have already done the - 
         # necessary checks while initializing run() function
@@ -101,7 +102,7 @@ class ActiveLearner(object):
 
         print('Search over Pool of Unlabeled Data size = '+ str(len(X_pool_subset)))
 
-        values = acquisition_fn(X_pool_subset) # NOTE! This shouldn't be self.acquisition_fn
+        values = acquisition_fn(X_pool_subset, step) # NOTE! This shouldn't be self.acquisition_fn
         # pick num_samples of higest values in sorted (descending) order
         pos = np.argpartition(values, -self.num_samples)[-self.num_samples:]
         
@@ -171,7 +172,7 @@ class ActiveLearner(object):
             for i in range(n_iter):
                 print('\nExperiment ' + str(self.experiment_no) + ' Aquisition function: ' + str(acquisition_fn[i_aq].__name__) + ': ')
                 print('ACQUISITION ITERATION ' + str(i+1) + ' of ' + str(n_iter))
-                self._active_pick(acquisition_fn[i_aq])
+                self._active_pick(acquisition_fn[i_aq], step=i)
                 self.train_fn(self.train_data, self.train_labels)
                 self._accuracy[i_aq, i+1] = self.eval_fn(self.test_data, self.test_labels, step=len(self.train_data))
                 assert self._x_axis[i+1] == len(self.train_data)
