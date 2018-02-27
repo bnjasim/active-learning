@@ -58,7 +58,7 @@ def var_ratio_keras(pool_data):
     return 1.0 - np.max(D_probs, axis=1)
 
 
-def train_keras(data, labels):
+def train_keras(data, labels, step=None):
     print ('Training data size: ' + str(len(data)))
     model.fit(data, labels, batch_size=batch_size, epochs=nb_epochs, verbose=1)
 

@@ -171,7 +171,7 @@ def var_ratio_tf(pool_data):
     # return 1.0 - np.max(D_probs, axis=1)
     return sess.run(uncertainty, feed_dict={x: pool_data, keep_prob1:1.0, keep_prob2:1.0})
 # Compute summaries over the pool_data
-def compute_pool_data_summary(pool_data):
+def compute_pool_data_summary(pool_data, step=None):
     # pool_data may too big!
     # choose a subset if you wish!
     guess = 1000

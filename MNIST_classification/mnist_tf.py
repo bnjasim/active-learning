@@ -87,7 +87,7 @@ def get_next_batch(data, labels, batch_size):
     indices = np.random.choice(range(len(data)), batch_size, replace=False)
     return data[indices], labels[indices]
 
-def train_tf_model(data, labels):
+def train_tf_model(data, labels, step=None):
     print ('Training data size: ' + str(len(data)))
     start_time = time.time()
     batch_size = 100
