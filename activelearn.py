@@ -11,9 +11,7 @@ class ActiveLearner(object):
     def __init__(self, pool_data, pool_labels, test_data, test_labels, 
                  clear_model_fn, train_fn, eval_fn, 
                  save_model, recover_model,
-                 init_num_samples = 100,
-                 unsuper_fn = None,
-                 unsup_pool_size = None
+                 init_num_samples = 100
                 ):
         '''init_num_samples denote how many datapoints to be samples initially, 
         num_smaples denote how many datapoints to be samples at each iteration'''
@@ -25,8 +23,6 @@ class ActiveLearner(object):
         self.init_num_samples = init_num_samples
         self.train_fn = train_fn
         self.eval_fn = eval_fn
-        self.unsuper_fn = unsuper_fn
-        self.unsup_pool_size = unsup_pool_size
         
         self.experiment_no = 1 
         
@@ -142,26 +138,37 @@ class ActiveLearner(object):
         X_pool_subset = self.pool_data[pool_subset_random_index]
         y_pool_subset = self.pool_labels[pool_subset_random_index]
     
-        pos = self.unsuper_fn(X_pool_subset, step)
+        pos, labels = self.unsuper_fn(X_pool_subset, step)
         
         datapoints = X_pool_subset[pos]
-        labels = y_pool_subset[pos]
+        correct_labels = y_pool_subset[pos]
+        
+        if len(pos):
+            unsup_mean = np.mean(np.argmax(labels, axis=1) == np.argmax(correct_labels, axis=1))
+            print ('Unsupervise Picked: ' + str(np.sum(pos)) + ' samples')
+            print ('Unsupervised: accuracy of labels = ' + str(unsup_mean))
+        else:
+            print ('Unsupervised: Nothing picked')
 
         self.pool_data = np.delete(self.pool_data, (pool_subset_random_index[pos]), axis=0)
         self.pool_labels = np.delete(self.pool_labels, (pool_subset_random_index[pos]), axis=0)
-        print("\nUnsupervised Pick: Picked " + str(self.num_samples) + " datapoints\nSize of updated Unsupervised pool = " + 
-              str(len(self.pool_data)))
+        # print("Size of updated Unsupervised pool = " +  str(len(self.pool_data)))
 
         self.train_data = np.vstack((self.train_data, datapoints))
         self.train_labels = np.vstack((self.train_labels, labels))
     
-    def run(self, n_iter, acquisition_fn, num_samples=10, pool_subset_count = None):
+    def run(self, n_iter, acquisition_fn, unsuper_fn = None,
+                 num_samples=10,  
+                 pool_subset_count = None,
+                 unsup_pool_size = None):
         '''Run active learning for given number of iterations.
         The acquisition_fn is(are) the name of the function(s) which computes acquisition values.
         aquisition_fn can be a list of function references as well - which is called a multi_run.
         '''
         
         self.num_samples = num_samples # required in _active_pick
+        self.unsuper_fn = unsuper_fn
+        self.unsup_pool_size = unsup_pool_size
         
         if ((pool_subset_count is None) or (pool_subset_count > len(self.pool_data))):
             self.pool_subset_count = pool_subset_count = len(self.pool_data)
