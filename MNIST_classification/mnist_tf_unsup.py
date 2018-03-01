@@ -7,7 +7,7 @@ from tensorflow.examples.tutorials.mnist import input_data
 mnist = input_data.read_data_sets("/Users/bnjasim/Desktop/active learning/Experiments/MNIST_data/", one_hot=True)
 
 import imp
-imp.load_source('activelearn', '../activelearn.py')
+imp.load_source('activelearn', '../activeunsuplearn.py')
 from activelearn import *
 
 train_data = mnist.train.images
