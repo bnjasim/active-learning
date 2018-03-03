@@ -52,10 +52,11 @@ def define_model():
     model.compile(loss = 'categorical_crossentropy', optimizer = 'adam', metrics = ['accuracy'])
 
 
-def var_ratio_keras(pool_data, step=None):
+def var_ratio_keras(pool_data, num_samples, step=None):
     # Var ratio active learning acquisition function
     D_probs = model.predict_proba(pool_data)  
-    return 1.0 - np.max(D_probs, axis=1)
+    pos = np.argpartition(np.max(D_probs, axis=1), num_samples)[:num_samples]
+    return pos
 
 
 def train_keras(data, labels, step=None):

@@ -1,7 +1,8 @@
 import numpy as np
 
-def random_acq(pool_data, step=None):
-    return np.random.rand(len(pool_data)) 
+def random_acq(pool_data, num_samples, step=None):
+    # return np.random.rand(len(pool_data)) 
+    return np.random.choice(len(pool_data), num_samples, replace=False)
 
 class ActiveLearner(object):
     '''Performs active learning
@@ -102,9 +103,10 @@ class ActiveLearner(object):
 
         print('Search over Pool of Unlabeled Data size = '+ str(len(X_pool_subset)))
 
-        values = acquisition_fn(X_pool_subset, step) # NOTE! This shouldn't be self.acquisition_fn
+        # values = acquisition_fn(X_pool_subset, step) # NOTE! This shouldn't be self.acquisition_fn
         # pick num_samples of higest values in sorted (descending) order
-        pos = np.argpartition(values, -self.num_samples)[-self.num_samples:]
+        # pos = np.argpartition(values, -self.num_samples)[-self.num_samples:]
+        pos = acquisition_fn(X_pool_subset, self.num_samples, step) 
         
         # Instead of taking the 10 most uncertain values, why not take 100 most uncertain values 
         # and then pick 10 randomly? - Sorry that failed for var-ratio!

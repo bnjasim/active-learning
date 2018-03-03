@@ -162,14 +162,24 @@ def restore_tf_model():
     saver.restore(sess, "./tmp/tf_model.ckpt")
     print("Model restored.")
 
-out_prob = tf.nn.softmax(y_conv)
-uncertainty = 1.0 - tf.reduce_max(out_prob, axis=1)
+n_samples = tf.placeholder(tf.int32)
 
-def var_ratio_tf(pool_data, step=None):
+out_prob = tf.nn.softmax(prediction)
+max_prob = tf.reduce_max(out_prob, axis=1)
+# actually we need least-k of max_prob's
+topk = tf.nn.top_k(-max_prob, n_samples)
+
+#out_prob2 = tf.nn.softmax(y_conv2)
+#max_prob2 = tf.reduce_max(out_prob2, axis=1)
+#topk2 = tf.nn.top_k(-max_prob2, n_samples)
+
+def var_ratio_tf(pool_data, num_samples, step=None):
     # Var ratio active learning acquisition function
-    # D_probs = sess.run(out_prob, feed_dict={x: pool_data, keep_prob1:1.0, keep_prob2:1.0})
-    # return 1.0 - np.max(D_probs, axis=1)
-    return sess.run(uncertainty, feed_dict={x: pool_data, keep_prob1:1.0, keep_prob2:1.0})
+    # return sess.run(max_prob1, feed_dict={x: pool_data, keep_prob1:1.0, keep_prob2:1.0})
+    t = sess.run(topk, feed_dict={x: pool_data, keep_prob1:1.0, keep_prob2:1.0, n_samples:num_samples})
+    return t.indices
+
+
 # Compute summaries over the pool_data
 def compute_pool_data_summary(pool_data, step=None):
     # pool_data may too big!
