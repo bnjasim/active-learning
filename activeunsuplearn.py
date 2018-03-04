@@ -3,7 +3,7 @@ import numpy as np
 def random_acq(pool_data, step=None):
     return np.random.rand(len(pool_data)) 
 
-class ActiveLearner(object):
+class ActiveUnsupLearner(object):
     '''Performs active learning
     acquisition_fn should return the prob to be acquired corresponding to each datapoint
     in the (subset of) pool data given as the argument'''
@@ -35,9 +35,9 @@ class ActiveLearner(object):
         self.train_labels = np.empty((0,) + self.pool_labels.shape[1:])
         
         self._accuracy = [] # keeps the accuracy after active+unsup(if required) picks
-        self._accuracy_before = [] # keeps the accuracy just after active pick before unsup pick
+        self._accuracy_before = [] # accuracy just after active, before unsup pick, will be empty if no unsup
         self._x_axis = [] # keeps the number of labels queried + init_num_samples
-        self._x_total = [] # keeps the total train_data size
+        self._x_total = [] # keeps the total train_data size, will be empty if unsup mode is OFF
         
         self.acquisition_fn = None
         
@@ -102,12 +102,13 @@ class ActiveLearner(object):
 
         print('Search over Pool of Unlabeled Data size = '+ str(len(X_pool_subset)))
 
-        values = acquisition_fn(X_pool_subset, step) # NOTE! This shouldn't be self.acquisition_fn
+        # values = acquisition_fn(X_pool_subset, step) # NOTE! This shouldn't be self.acquisition_fn
+        pos = acquisition_fn(X_pool_subset, self.num_samples, step) # NOTE! This shouldn't be self.acquisition_fn
         # pick num_samples of higest values in sorted (descending) order
-        pos = np.argpartition(values, -self.num_samples)[-self.num_samples:]
+        # pos = np.argpartition(values, -self.num_samples)[-self.num_samples:]
         
         # Instead of taking the 10 most uncertain values, why not take 100 most uncertain values 
-        # and then pick 10 randomly? - Sorry that failed for var-ratio!
+        # and then pick 10 randomly? - Sorry that failed miserably for the MNIST!
         # num_to_pick = self.num_samples * 2
         # some heuristics - if we are picking more than half of pool_data, then may not be a good idea
         # if num_to_pick > how_many/2.0:
@@ -123,11 +124,12 @@ class ActiveLearner(object):
 
         self.pool_data = np.delete(self.pool_data, (pool_subset_random_index[pos]), axis=0)
         self.pool_labels = np.delete(self.pool_labels, (pool_subset_random_index[pos]), axis=0)
-        print("\nActive Pick: Picked " + str(self.num_samples) + " datapoints\nSize of updated Unsupervised pool = " + 
-              str(len(self.pool_data)))
-
+        print("\nActive Pick: Picked " + str(self.num_samples) + " datapoints")
+        print("Size of updated Unsupervised pool = " + str(len(self.pool_data)))
         self.train_data = np.vstack((self.train_data, datapoints))
         self.train_labels = np.vstack((self.train_labels, labels))
+        
+        return len(pos)
     
     def _unsup_pick(self, step=None):
         '''Pick some datapoints from the unsupervised pool
@@ -188,8 +190,8 @@ class ActiveLearner(object):
     
         self.acquisition_fn = acquisition_fn
         
-        # We can predefine the _x_axis 
-        self._x_axis = range(self.init_num_samples, self.init_num_samples + self.num_samples*(n_iter+1), self.num_samples)
+        # self._x_axis = range(self.init_num_samples, self.init_num_samples + self.num_samples*(n_iter+1), self.num_samples)
+        self._x_axis = np.zeros((n_iter + 1))
         self._x_total = np.zeros((len(acquisition_fn), len(self._x_axis)))
         
         # initialize _accuracy matrix (2d array)
@@ -213,18 +215,28 @@ class ActiveLearner(object):
                 # retrain only if we have picked at least 5 new datapoints by unsup pick
                 # if ((len(self.train_data) - self.init_num_samples) >= 5):
                 self.train_fn(self.train_data, self.train_labels)
-
+                
                 self._x_total[i_aq][0] = len(self.train_data)
 
 
             # accuracy is updated only after active+unsup pick
             self._accuracy[i_aq][0] = self.eval_fn(self.test_data, self.test_labels, step=len(self.train_data))
-
+            self._x_axis[0] = self.init_num_samples
+            
 
             for i in range(n_iter):
                 print('\nExperiment ' + str(self.experiment_no) + ' Aquisition function: ' + str(acquisition_fn[i_aq].__name__) + ': ')
                 print('ACQUISITION ITERATION ' + str(i+1) + ' of ' + str(n_iter))
-                self._active_pick(acquisition_fn[i_aq], step=i)
+                num = self._active_pick(acquisition_fn[i_aq], step=i)
+                
+                # if active_pick doesn't return even a single datapoint, stop
+                if (num == 0):
+                    break
+                
+                # allowing non fixed number of samples to be returned from active_pick
+                # won't be suitable for running multiple experiments, but it will 
+                # record only the last _x_axis
+                self._x_axis[i+1] = self._x_axis[i] + num
                 self.train_fn(self.train_data, self.train_labels)
                 
                 # unsupervised pick only if unsup mode is ON

@@ -130,6 +130,8 @@ class ActiveLearner(object):
 
         self.train_data = np.vstack((self.train_data, datapoints))
         self.train_labels = np.vstack((self.train_labels, labels))
+
+        return len(pos)
     
     
     def run(self, n_iter, acquisition_fn, num_samples=10, pool_subset_count = None):
@@ -158,8 +160,8 @@ class ActiveLearner(object):
     
         self.acquisition_fn = acquisition_fn
         
-        # We can predefine the _x_axis 
-        self._x_axis = range(self.init_num_samples, self.init_num_samples + self.num_samples*(n_iter+1), self.num_samples)
+        # self._x_axis = range(self.init_num_samples, self.init_num_samples + self.num_samples*(n_iter+1), self.num_samples)
+        self._x_axis = np.zeros((n_iter + 1))
         # initialize _accuracy matrix (2d array)
         self._accuracy = np.zeros((len(acquisition_fn), len(self._x_axis)))
 
@@ -170,14 +172,25 @@ class ActiveLearner(object):
             # Do the testing with initial data
             # We could have saved that value, but it is a good check if the model is properly recovered or not
             self._accuracy[i_aq, 0] = self.eval_fn(self.test_data, self.test_labels)
+            self._x_axis[0] = self.init_num_samples
 
             for i in range(n_iter):
                 print('\nExperiment ' + str(self.experiment_no) + ' Aquisition function: ' + str(acquisition_fn[i_aq].__name__) + ': ')
                 print('ACQUISITION ITERATION ' + str(i+1) + ' of ' + str(n_iter))
-                self._active_pick(acquisition_fn[i_aq], step=i)
+                num = self._active_pick(acquisition_fn[i_aq], step=i)
+                # if active_pick doesn't return even a single datapoint, stop
+                if (num == 0):
+                    break
+                
+                # allowing non fixed number of samples to be returned from active_pick
+                # won't be suitable for running multiple experiments, but it will 
+                # record only the last _x_axis
+                self._x_axis[i+1] = self._x_axis[i] + num
+                
                 self.train_fn(self.train_data, self.train_labels)
                 self._accuracy[i_aq, i+1] = self.eval_fn(self.test_data, self.test_labels, step=len(self.train_data))
-                assert self._x_axis[i+1] == len(self.train_data)
+                # assert self._x_axis[i+1] == len(self.train_data)
+
                 
                 # unsupervised pick?? Later!
                 # Compute summaries over the pool_data
