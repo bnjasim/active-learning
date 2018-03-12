@@ -219,7 +219,6 @@ class ActiveUnsupLearner(object):
                 self._x_total[i_aq][0] = len(self.train_data)
 
 
-            # accuracy is updated only after active+unsup pick
             self._accuracy[i_aq][0] = self.eval_fn(self.test_data, self.test_labels, step=len(self.train_data))
             self._x_axis[0] = self.init_num_samples
             
@@ -332,9 +331,9 @@ class ActiveUnsupLearner(object):
         for i in range(num_exp):
             self.experiment_no = i+1
             print ('\nExperiment #' + str(self.experiment_no) + '\n***************\n')
-            self.run(n_iter, acquisition_fn, num_samples, pool_subset_count)
+            self.run(n_iter, acquisition_fn, pool_subset_count=pool_subset_count)
             self._avg_accuracy = (self._avg_accuracy * (i) + self._accuracy) / (i+1) # running average
-            self._avg_accuracy = (self._avg_accuracy_before * (i) + self._accuracy_before) / (i+1) # running average
+            self._avg_accuracy_before = (self._avg_accuracy_before * (i) + self._accuracy_before) / (i+1) # running average
             self._x_total_exp = np.vstack((self._x_total_exp, self._x_total))
             
         # finally assign back the avg accuracy to _accuracy variable for proper plotting
