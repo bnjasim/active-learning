@@ -5,9 +5,7 @@ def random_acq(pool_data, num_samples, step=None):
     return np.random.choice(len(pool_data), num_samples, replace=False)
 
 class ActiveLearner(object):
-    '''Performs active learning
-    acquisition_fn should return the prob to be acquired corresponding to each datapoint
-    in the (subset of) pool data given as the argument'''
+    '''Performs active learning'''
     
     def __init__(self, pool_data, pool_labels, test_data, test_labels, 
                  clear_model_fn, train_fn, eval_fn, 
