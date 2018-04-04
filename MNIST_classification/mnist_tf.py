@@ -126,7 +126,7 @@ def restore_tf_model():
 
 n_samples = tf.placeholder(tf.int32)
 
-out_prob = tf.nn.softmax(prediction)
+out_prob = tf.nn.softmax(y_conv)
 max_prob = tf.reduce_max(out_prob, axis=1)
 # actually we need least-k of max_prob's
 topk = tf.nn.top_k(-max_prob, n_samples)
