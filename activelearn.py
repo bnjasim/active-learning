@@ -14,10 +14,17 @@ class ActiveLearner(object):
         '''init_num_samples denote how many datapoints to be samples initially, 
         num_smaples denote how many datapoints to be samples at each iteration'''
         
-        self.pool_data = pool_data
-        self.pool_labels = pool_labels
-        self.test_data = test_data
-        self.test_labels = test_labels
+        # train data is python lists not numpy arrays
+        # so as to allow datapoints of different lengths like sentences
+        # list() expression also takes a deep copy
+        self.pool_data = list(pool_data)
+        self.pool_labels = list(pool_labels)
+        self.test_data = list(test_data)
+        self.test_labels = list(test_labels)
+        assert (len(self.pool_data)==len(self.pool_labels) and 
+               len(self.test_data)==len(self.test_labels)), "data and labels size don't match"
+        
+        
         self.init_num_samples = init_num_samples
         self.train_fn = train_fn
         self.eval_fn = eval_fn
@@ -29,8 +36,9 @@ class ActiveLearner(object):
             raise Exception('Can not pick more samples than what is available in the pool data')
         
         # initialize empty arrays of dimension (0, 28, 28, 1) etc.
-        self.train_data = np.empty((0,) + self.pool_data.shape[1:])
-        self.train_labels = np.empty((0,) + self.pool_labels.shape[1:])
+        # self.train_data = np.empty((0,) + self.pool_data.shape[1:])
+        # self.train_labels = np.empty((0,) + self.pool_labels.shape[1:])
+        self.train_data, self.train_labels = [], []
         
         self._accuracy = []
         self._x_axis = []
@@ -44,11 +52,10 @@ class ActiveLearner(object):
         self.train_fn(self.train_data, self.train_labels)
         # evaluate the accuracy after initial training
         self._accuracy.append(self.eval_fn(self.test_data, self.test_labels, step=len(self.train_data)))
-        self._x_axis.append(len(self.train_data)) # this is most certainly over written later and hence useless here!
+        self._x_axis.append(len(self.train_data)) # this is over written later and hence useless here!
         
-        # unsupervised pick?? Later!
         # Compute summaries over the pool_data
-        compute_pool_data_summary(self.pool_data)
+        # compute_pool_data_summary(self.pool_data)
         
         # save model function can be writing the learned model to the disk
         # or even taking a deep copy (in RAM)
@@ -62,31 +69,39 @@ class ActiveLearner(object):
         for initial training of the model.
         Remove them from the pool and return the data.
         Returns chosen datapoints and the updated pool_data'''
-        
-        # This has already been checked in __init__
-        if (self.init_num_samples > len(self.pool_data)):
-            raise Exception('Can not pick more samples than what is available in the pool data')
 
-        #np.random.seed(0)
+        # np.random.seed(0)
         indices = np.random.choice(range(len(self.pool_data)), self.init_num_samples, replace=False)
-        datapoints = self.pool_data[indices]
-        labels = self.pool_labels[indices]
-        self.pool_data = np.delete(self.pool_data, indices, axis=0)
-        self.pool_labels = np.delete(self.pool_labels, indices, axis=0)
+        datapoints = [self.pool_data[i] for i in indices] # sadly multi-indexing works in numpy but not in lists
+        labels = [self.pool_labels[i] for i in indices]
+        # self.pool_data = np.delete(self.pool_data, indices, axis=0)
+        # self.pool_labels = np.delete(self.pool_labels, indices, axis=0)
+        self._delete_list_indices(self.pool_data, indices)
+        self._delete_list_indices(self.pool_labels, indices)
+        
         print("Picked " + str(self.init_num_samples) + " datapoints\nSize of updated unsupervised pool = " +
               str(len(self.pool_data)) + "\n")
         
         if (len(self.train_data) > 0):
             raise Exception('In _init_pick: The train data is not empty.')
             
-        self.train_data = np.vstack((self.train_data, datapoints))
-        self.train_labels = np.vstack((self.train_labels, labels))
+        # self.train_data = np.vstack((self.train_data, datapoints))
+        # self.train_labels = np.vstack((self.train_labels, labels))
+        self.train_data += list(datapoints)
+        self.train_labels += list(labels)
+        
     
-    
+    def _delete_list_indices(self, l, ind):
+        for i in sorted(ind, reverse=True):
+            del l[i]
+        # In-place delete, so no need to return    
+        # return l
+
     def _active_pick(self, acquisition_fn, step=None):
         """Returns the datapoints which have the highest value as per the acquisition function
         from the pool_data.
-        step is an optional argument which can be used for things like changing acquisition function according to iteration number
+        step is an optional argument which can be used for things 
+        like changing acquisition function according to iteration number
         """
         # This condition should ideally be False because we have already done the - 
         # necessary checks while initializing run() function
@@ -96,38 +111,30 @@ class ActiveLearner(object):
             
         how_many = self.pool_subset_count if self.pool_subset_count <= len(self.pool_data) else len(self.pool_data)
         pool_subset_random_index = np.random.choice(range(len(self.pool_data)), how_many, replace=False)
-        X_pool_subset = self.pool_data[pool_subset_random_index]
-        y_pool_subset = self.pool_labels[pool_subset_random_index]
+        X_pool_subset = [self.pool_data[i] for i in pool_subset_random_index]
+        y_pool_subset = [self.pool_labels[i] for i in pool_subset_random_index]
 
         print('Search over Pool of Unlabeled Data size = '+ str(len(X_pool_subset)))
 
-        # values = acquisition_fn(X_pool_subset, step) # NOTE! This shouldn't be self.acquisition_fn
-        # pick num_samples of higest values in sorted (descending) order
-        # pos = np.argpartition(values, -self.num_samples)[-self.num_samples:]
+        # acquisition function returns the chosen positions in the passed list
         pos = acquisition_fn(X_pool_subset, self.num_samples, step) 
+    
+        datapoints = [X_pool_subset[i] for i in pos]
+        labels = [y_pool_subset[i] for i in pos]
+        # print pool_subset_random_index[:10]
+        # self.pool_data = np.delete(self.pool_data, (pool_subset_random_index[pos]), axis=0)
+        # self.pool_labels = np.delete(self.pool_labels, (pool_subset_random_index[pos]), axis=0)
+        indices = [pool_subset_random_index[i] for i in pos]
+        self._delete_list_indices(self.pool_data, indices)
+        self._delete_list_indices(self.pool_labels, indices)
         
-        # Instead of taking the 10 most uncertain values, why not take 100 most uncertain values 
-        # and then pick 10 randomly? - Sorry that failed for var-ratio!
-        # num_to_pick = self.num_samples * 2
-        # some heuristics - if we are picking more than half of pool_data, then may not be a good idea
-        # if num_to_pick > how_many/2.0:
-        #    num_to_pick /= 2
-        
-        # if still greater, then we probably want to use random sampling only
-        # if num_to_pick > how_many:
-        #    num_to_pick = how_many    
-        # pos = np.random.choice(np.argpartition(values, num_to_pick)[num_to_pick:], self.num_samples, replace=False)
-        
-        datapoints = X_pool_subset[pos]
-        labels = y_pool_subset[pos]
-        #print pool_subset_random_index[:10]
-        self.pool_data = np.delete(self.pool_data, (pool_subset_random_index[pos]), axis=0)
-        self.pool_labels = np.delete(self.pool_labels, (pool_subset_random_index[pos]), axis=0)
         print("\nPicked " + str(self.num_samples) + " datapoints\nSize of updated Unsupervised pool = " + 
               str(len(self.pool_data)))
 
-        self.train_data = np.vstack((self.train_data, datapoints))
-        self.train_labels = np.vstack((self.train_labels, labels))
+        # self.train_data = np.vstack((self.train_data, datapoints))
+        # self.train_labels = np.vstack((self.train_labels, labels))
+        self.train_data += list(datapoints)
+        self.train_labels += list(labels)
 
         return len(pos)
     
@@ -150,8 +157,7 @@ class ActiveLearner(object):
             
         if (n_iter * self.num_samples > len(self.pool_data)):
             raise Exception('Pool data is small.\nReduce the number of iterations or number of samples to pick')
-        
-        # If aquisition_fn is a list - then multi_run. 
+         
         if (type(acquisition_fn) is not list):    
             # if type of aq function is not list then make it a list
             acquisition_fn = [acquisition_fn]   
@@ -173,7 +179,8 @@ class ActiveLearner(object):
             self._x_axis[0] = self.init_num_samples
 
             for i in range(n_iter):
-                print('\nExperiment ' + str(self.experiment_no) + ' Aquisition function: ' + str(acquisition_fn[i_aq].__name__) + ': ')
+                print('\nExperiment ' + str(self.experiment_no) + ' Aquisition function: ' + 
+                      str(acquisition_fn[i_aq].__name__) + ': ')
                 print('ACQUISITION ITERATION ' + str(i+1) + ' of ' + str(n_iter))
                 num = self._active_pick(acquisition_fn[i_aq], step=i)
                 # if active_pick doesn't return even a single datapoint, stop
@@ -189,10 +196,8 @@ class ActiveLearner(object):
                 self._accuracy[i_aq, i+1] = self.eval_fn(self.test_data, self.test_labels, step=len(self.train_data))
                 # assert self._x_axis[i+1] == len(self.train_data)
 
-                
-                # unsupervised pick?? Later!
                 # Compute summaries over the pool_data
-                compute_pool_data_summary(self.pool_data, step=len(self.train_data))
+                # compute_pool_data_summary(self.pool_data, step=len(self.train_data))
         
         return self._x_axis, self._accuracy 
     
@@ -201,12 +206,18 @@ class ActiveLearner(object):
     def _recover_model_and_data(self):
         self.recover_model()
         print ('Recovered Saved Model')
-        # set train data to initially picked data only
+        
         # reset pool_data to the whole data except initial data
-        self.pool_data = np.vstack((self.pool_data, self.train_data[self.init_num_samples:]))
-        self.pool_labels = np.vstack((self.pool_labels, self.train_labels[self.init_num_samples:]))
-        self.train_data = np.delete(self.train_data, range(self.init_num_samples, len(self.train_data)), axis=0)
-        self.train_labels = np.delete(self.train_labels, range(self.init_num_samples, len(self.train_labels)), axis=0)
+        # self.pool_data = np.vstack((self.pool_data, self.train_data[self.init_num_samples:]))
+        # self.pool_labels = np.vstack((self.pool_labels, self.train_labels[self.init_num_samples:]))
+        self.pool_data += self.train_data[self.init_num_samples:]
+        self.pool_labels += self.train_labels[self.init_num_samples:]
+        
+        # set train data to initially picked data only
+        # self.train_data = np.delete(self.train_data, range(self.init_num_samples, len(self.train_data)), axis=0)
+        # self.train_labels = np.delete(self.train_labels, range(self.init_num_samples, len(self.train_labels)), axis=0)
+        self.train_data = self.train_data[:self.init_num_samples]
+        self.train_labels = self.train_labels[:self.init_num_samples]
 
         
     
@@ -271,4 +282,3 @@ class ActiveLearner(object):
         self._accuracy = self._avg_accuracy
         
         return self._x_axis, self._accuracy 
-            
