@@ -4,3 +4,4 @@
 sentiment/datasets/
 *.npy
 MNIST_classification/tmp/
+.ipynb

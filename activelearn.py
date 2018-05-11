@@ -223,7 +223,7 @@ class ActiveLearner(object):
     
     def plot(self, x_axis=None, y_axis=None, label=None, title='Active Learning', loc=0):
         '''Plot the accuracy'''
-        %matplotlib inline
+        # %matplotlib inline
         from matplotlib import pyplot as plt
             
         if x_axis is None:
