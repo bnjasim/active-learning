@@ -620,6 +620,10 @@ clear_fn = model.initialize_session
 save_fn = model.save_session
 restore_fn = model.restore_session
 
+def random_acq(pool_data, num_samples, step=None):
+    # return np.random.rand(len(pool_data)) 
+    return np.random.choice(len(pool_data), num_samples, replace=False)
+
 out_prob_seq = tf.nn.log_softmax(model.logits)
 
 def mnlp(pool_data, num_samples, step=None):
