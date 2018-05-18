@@ -163,9 +163,8 @@ class ActiveLearner(object):
             acquisition_fn = [acquisition_fn]   
     
         self.acquisition_fn = acquisition_fn
-        
-        # self._x_axis = range(self.init_num_samples, self.init_num_samples + self.num_samples*(n_iter+1), self.num_samples)
-        self._x_axis = np.zeros((n_iter + 1))
+  
+        self._x_axis = np.zeros((len(acquisition_fn), n_iter+1))
         # initialize _accuracy matrix (2d array)
         self._accuracy = np.zeros((len(acquisition_fn), len(self._x_axis)))
 
@@ -175,8 +174,8 @@ class ActiveLearner(object):
 
             # Do the testing with initial data
             # We could have saved that value, but it is a good check if the model is properly recovered or not
-            self._accuracy[i_aq, 0] = self.eval_fn(self.test_data, self.test_labels)
-            self._x_axis[0] = self.init_num_samples
+            self._accuracy[i_aq][0] = self.eval_fn(self.test_data, self.test_labels)
+            self._x_axis[i_aq][0] = self.init_num_samples
 
             for i in range(n_iter):
                 print('\nExperiment ' + str(self.experiment_no) + ' Aquisition function: ' + 
@@ -190,10 +189,10 @@ class ActiveLearner(object):
                 # allowing non fixed number of samples to be returned from active_pick
                 # won't be suitable for running multiple experiments, but it will 
                 # record only the last _x_axis
-                self._x_axis[i+1] = self._x_axis[i] + num
+                self._x_axis[i_aq][i+1] = self._x_axis[i_aq][i] + num
                 
                 self.train_fn(self.train_data, self.train_labels)
-                self._accuracy[i_aq, i+1] = self.eval_fn(self.test_data, self.test_labels, step=len(self.train_data))
+                self._accuracy[i_aq][i+1] = self.eval_fn(self.test_data, self.test_labels, step=len(self.train_data))
                 # assert self._x_axis[i+1] == len(self.train_data)
 
                 # Compute summaries over the pool_data
@@ -230,11 +229,13 @@ class ActiveLearner(object):
             x_axis = self._x_axis
             y_axis = np.array(self._accuracy)
         
-        if len(x_axis) <= 1:
+        if len(x_axis[0]) <= 1:
             raise Exception('Please run experiment before plotting!')
         
-        x_start = x_axis[0] # self.init_num_samples
-        x_end = x_axis[-1]
+        x_start = x_axis[0][0] # self.init_num_samples
+        # x_end = x_axis[-1]
+        x_end = np.max(x_axis)
+        
         y_start = np.round(np.min(y_axis), 1)
         if (y_start > np.min(y_axis)):
             y_start -= 0.1
@@ -253,7 +254,7 @@ class ActiveLearner(object):
             label = [s.__name__ for s in self.acquisition_fn]  
 
         for i in range(len(y_axis)):
-             plt.plot(x_axis, y_axis[i], label=label[i])   
+             plt.plot(x_axis[i], y_axis[i], label=label[i])    
 
         
         plt.grid()
@@ -267,7 +268,7 @@ class ActiveLearner(object):
         return average accuracy values over all experiments.'''
         
         if type(acquisition_fn) is not list:
-            raise Exception('experiment is to compare different acquisition functions, hence it should be a list')
+            raise Exception('Acquisition functions should be a list of functions')
         
         # define new variables to hold averages: useful incase we want to stop experiment forcefully in between
         self._avg_accuracy = np.zeros((len(acquisition_fn), n_iter+1))
