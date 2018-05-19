@@ -227,6 +227,7 @@ class ActiveLearner(object):
             
         if x_axis is None:
             x_axis = self._x_axis
+        if y_axis is None:
             y_axis = np.array(self._accuracy)
         
         if len(x_axis[0]) <= 1:
